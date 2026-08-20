@@ -1,0 +1,3 @@
+conda init
+conda activate mediapipe-env
+python mouse_hands.py

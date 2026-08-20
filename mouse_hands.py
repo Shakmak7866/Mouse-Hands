@@ -4,115 +4,168 @@ import mediapipe as mp
 import math
 import pyautogui
 
-# using geeks for geeks tutorial to get hands to work
-# Grabbing Holistic model from media pipe
 
-pyautogui.PAUSE = 0.01
+def print_landmarks(mp_hands):
+    for landmark in mp_hands.HandLandmark:
+        print(landmark, landmark.value)
 
-screen_width, screen_height = pyautogui.size()
 
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(
-    max_num_hands = 1,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-)
+def calculate_FPS(prev_time, curr_time):
+    curr_time = time.time()
+    fps = 1 / (curr_time - prev_time)
+    prev_time = curr_time
 
-#mp_drawing = mp.solutions.drawing_utils
+    return prev_time, curr_time
 
-prevTime = 0
-currTime = 0
+def hand_draw(results, mp_drawing, mp_hands):
+    for hand_landmarks in results.multi_hand_landmarks:
+        mp_drawing.draw_landmarks(
+            image,
+            hand_landmarks,
+            mp_hands.HAND_CONNECTIONS
+        )
 
-capture = cv.VideoCapture(0)
+def check_distance(finger_a, finger_b):
+    x = (finger_a.x - finger_b.x)
+    y = (finger_a.y - finger_b.y)
+    return math.sqrt( (x**2) + (y**2) )
+    
 
-prev_x, prev_y = pyautogui.position()
-"""
-for landmark in mp_holistic.HandLandmark:
-    print(landmark, landmark.value)
+def left_click(index, thumb):
+    click_dist = check_distance(index, thumb)
+    if click_dist < 0.05:
+        pyautogui.mouseDown(button='left')
+        time.sleep(1)
+    else:
+        pyautogui.mouseUp(button='left')
+        time.sleep(1)
 
-print(mp_holistic.HandLandmark.WRIST.value)
-"""
+def right_click(middle, thumb):
+    click_dist = check_distance(middle, thumb)
+    if click_dist < 0.05:
+        pyautogui.mouseDown(button='right')
+        time.sleep(1)
+    else:
+        pyautogui.mouseUp(button='right')
+        time.sleep(1)
 
-while capture.isOpened():
-    # capture frame by frame
-    ret, frame = capture.read()
+def scroll_click(index, middle):
+    click_dist = check_distance(index, middle)
+    if click_dist < 0.05:
+        pyautogui.mouseDown(button='middle')
+        time.sleep(1)
+    else:
+        pyautogui.mouseUp(button='middle')
+        time.sleep(1)
 
-    # This will resize the frame:
-    frame = cv.flip(frame, 1)
-    frame = cv.resize(frame, (640, 480))
 
-    # Converts from BGR to RGB
-    image = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+def hand_detection(
+    results, 
+    mp_drawing, 
+    mp_hands, 
+    hands, 
+    screen_width, 
+    screen_height, 
+    prev_x,
+    prev_y,
+):
+    hand = results.multi_hand_landmarks[0]
 
-    # This code will have to do with the holistic model
-    # Makes predicitions using holistic model
-    # This will improve performace, optionally mark the image as not writeable to pass by refernce
-    image.flags.writeable = False
-    results = hands.process(image)
+    # Index + Thumb = Left Click
+    # Middle + Thumb = Right Click
+    # Index + Middle = Scroll Button
 
-    # Converting back to BGR
-    #image = cv.cvtColor(image, cv.COLOR_RGB2BGR)
+    index = hand.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+    middle = hand.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]
+    thumb = hand.landmark[mp_hands.HandLandmark.THUMB_TIP]
 
-    # This is for drawing face, which we will ignore for right now.
-    # We only want left hand at the moment
+    # Mouse Following Code
+    target_x = index.x * screen_width
+    target_y = index.y * screen_height
+    next_x = prev_x + 0.2 * (target.x - prev_x) # For easing into
+    next_y = prev_y + 0.2 * (target.y - prev_y) # For easing into
+    pyautogui.moveTo(next_x, next_y)
+    prev_x = next_x
+    prev_y = next_y
 
-    # Left Hand
-    """
-    mp_drawing.draw_landmarks(
-        image,
-        results.left_hand_landmarks,
-        mp_holistic.HAND_CONNECTIONS
+    left_click(index, thumb)
+    right_click(middle, thumb)
+    scroll_click(index, middle)
+
+
+
+def main():
+    # Set up utilites first
+
+    # Pyautogui setup
+    pyautogui.PAUSE = 0.1 # Makes the mouse move cleaner
+    screen_width, screen_height = pyautogui.size()
+    prev_x, prev_y = pyautogui.position()
+
+    # Time setup
+    prev_time = 0
+    curr_time = 0
+
+    # Camera Setup
+    capture = cv.VideoCaputer(0)
+
+    # MediaPipe Setup
+    mp_drawing = mp.solutions.drawing_utils
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(
+        max_num_hands = 1, # We only want one hand at a time to move the mouse
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
     )
-    """
+    print_landmarks(mp_hands)
 
-    # Will measure the distance between index and thumb and print ok
-    if results.multi_hand_landmarks:
-        hand = results.multi_hand_landmarks[0]
-        index_finger_tip = hand.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+    # Loop for capturing hand detection
+    while capture.isOpened():
 
-        #print((10 * round((wrist.x * 1000) / 10))**1.15, 10 * round((wrist.y * 500) / 10)**1.15)
-        #pyautogui.moveTo(10 * round((wrist.x * 1000) / 10)**1.15, 10 * round((wrist.y * 500) / 10)**1.15)
-        #print(wrist.x * 1000, wrist.y * 1000)
-        #pyautogui.moveTo(wrist.x * 1000, wrist.y * 1000)
+        # Capture frame by frame and resize it
+        ret, frame = capture.read()
+        frame = cv.flip(frame, 1)
+        frame = cv.resize(frame, (640, 480))
 
-        target_x = (index_finger_tip.x) * screen_width
-        target_y = index_finger_tip.y * screen_height
-        
-        next_x = prev_x + 0.2 * (target_x - prev_x)
-        next_y = prev_y + 0.2 * (target_y - prev_y)
+        # Improves image and performance
+        image = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+        image.flags.writeable = False
+        results = hands.process(image)
+        image.flags.writeable = True
+        image = cv.cvtColor(image, cv.COLOR_RGB2BGR)
 
-        #print(next_x, next_y)
-        pyautogui.moveTo(next_x, next_y)
-        prev_x = next_x
-        prev_y = next_y
+        # Main Logic
+        if results.multi_hand_landmarks:
+            # Draw points on hand
+            hand_draw(results, mp_drawing, mp_hands)
 
-        thumb_tip = hand.landmark[mp_hands.HandLandmark.THUMB_TIP]
-        middle_tip = hand.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]
+            # Move mouse to where hand is
+            hand_detection(
+                results, 
+                mp_drawing, 
+                mp_hands, 
+                hands, 
+                screen_width, 
+                screen_height, 
+                prev_x,
+                prev_y,
+            )
 
-        click_distance = math.sqrt( (index_finger_tip.x - thumb_tip.x)**2 + (index_finger_tip.y - thumb_tip.y)**2 )
-        if click_distance < 0.02:
-            pyautogui.mouseDown(button='middle')
-        else:
-            pyautogui.mouseUp(button='middle')
+        # Show FPS
+        prev_time, curr_time = calculate_FPS(prev_time, curr_time)
 
-        scroll_distance = math.sqrt( (index_finger_tip.x - middle_tip.x)**2 + (index_finger_tip.y - middle_tip.y)**2 )
+        # Show Camera and drawings
+        cv.imshow("Mouse Hands", image)
 
-        if scroll_distance < 0.02:
-            pyautogui.mouseDown(button='left')
-            #pyautogui.click()
-        else:
-            pyautogui.mouseUp(button='left')
+        # Press q to quit
+        if cv.waitkey(20) & 0xFF==ord('q'):
+            break
 
-
-    #cv.imshow("Sup", image)
-
-    if cv.waitKey(20) & 0xFF==ord('q'):
-        break
-
-capture.release()
-cv.destroyAllWindows()
-hands.close()
+    hands.close()
+    capture.release()
+    cv.destoryAllWindows()
 
 
-# k = cv.waitKey(0) # Waits for keystroke
 
+if __name__ == "__main__":
+    main()
