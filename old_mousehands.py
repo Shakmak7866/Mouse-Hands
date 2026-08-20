@@ -47,7 +47,6 @@ while capture.isOpened():
     # This will improve performace, optionally mark the image as not writeable to pass by refernce
     image.flags.writeable = False
     results = hands.process(image)
-    image.flags.writeable = True
 
     # Converting back to BGR
     image = cv.cvtColor(image, cv.COLOR_RGB2BGR)
@@ -76,6 +75,7 @@ while capture.isOpened():
         next_y = prev_y + 0.2 * (target_y - prev_y)
 
         #print(next_x, next_y)
+
         pyautogui.moveTo(next_x, next_y)
         prev_x = next_x
         prev_y = next_y

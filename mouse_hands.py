@@ -31,32 +31,29 @@ def check_distance(finger_a, finger_b):
     return math.sqrt( (x**2) + (y**2) )
     
 
-def left_click(index, thumb):
-    click_dist = check_distance(index, thumb)
+def left_click(finger_a, finger_b):
+    click_dist = check_distance(finger_a, finger_b)
     if click_dist < 0.05:
         pyautogui.mouseDown(button='left')
-        time.sleep(1)
+        time.sleep(0.01)
     else:
         pyautogui.mouseUp(button='left')
-        time.sleep(1)
 
-def right_click(middle, thumb):
-    click_dist = check_distance(middle, thumb)
+def right_click(finger_a, finger_b):
+    click_dist = check_distance(finger_a, finger_b)
     if click_dist < 0.05:
         pyautogui.mouseDown(button='right')
-        time.sleep(1)
+        time.sleep(0.01)
     else:
         pyautogui.mouseUp(button='right')
-        time.sleep(1)
 
-def scroll_click(index, middle):
-    click_dist = check_distance(index, middle)
-    if click_dist < 0.05:
+def scroll_click(finger_a, finger_b):
+    click_dist = check_distance(finger_a, finger_b) 
+    if click_dist < 0.03:
         pyautogui.mouseDown(button='middle')
-        time.sleep(1)
+        time.sleep(0.01)
     else:
         pyautogui.mouseUp(button='middle')
-        time.sleep(1)
 
 
 def hand_detection(
@@ -77,20 +74,24 @@ def hand_detection(
 
     index = hand.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
     middle = hand.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]
+    ring = hand.landmark[mp_hands.HandLandmark.RING_FINGER_TIP]
+    pinky = hand.landmark[mp_hands.HandLandmark.PINKY_TIP]
     thumb = hand.landmark[mp_hands.HandLandmark.THUMB_TIP]
 
     # Mouse Following Code
     target_x = index.x * screen_width
     target_y = index.y * screen_height
-    next_x = prev_x + 0.2 * (target.x - prev_x) # For easing into
-    next_y = prev_y + 0.2 * (target.y - prev_y) # For easing into
+    next_x = prev_x + 0.2 * (target_x - prev_x) # For easing into
+    next_y = prev_y + 0.2 * (target_y - prev_y) # For easing into
     pyautogui.moveTo(next_x, next_y)
     prev_x = next_x
     prev_y = next_y
 
     left_click(index, thumb)
-    right_click(middle, thumb)
+    right_click(pinky, thumb)
     scroll_click(index, middle)
+
+    return prev_x, prev_y
 
 
 
@@ -98,7 +99,7 @@ def main():
     # Set up utilites first
 
     # Pyautogui setup
-    pyautogui.PAUSE = 0.1 # Makes the mouse move cleaner
+    pyautogui.PAUSE = 0 # Makes the mouse move cleaner
     screen_width, screen_height = pyautogui.size()
     prev_x, prev_y = pyautogui.position()
 
@@ -131,7 +132,7 @@ def main():
         image = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
         image.flags.writeable = False
         results = hands.process(image)
-        image.flags.writeable = True
+        #image.flags.writeable = True
         image = cv.cvtColor(image, cv.COLOR_RGB2BGR)
 
         # Main Logic
@@ -140,7 +141,7 @@ def main():
             hand_draw(image, results, mp_drawing, mp_hands)
 
             # Move mouse to where hand is
-            hand_detection(
+            prev_x, prev_y = hand_detection(
                 results, 
                 mp_drawing, 
                 mp_hands, 
@@ -152,7 +153,7 @@ def main():
             )
 
         # Show FPS
-        prev_time, curr_time = calculate_FPS(prev_time, curr_time)
+        #prev_time, curr_time = calculate_FPS(prev_time, curr_time)
 
         # Show Camera and drawings
         cv.imshow("Mouse Hands", image)
