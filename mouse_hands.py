@@ -17,7 +17,7 @@ def calculate_FPS(prev_time, curr_time):
 
     return prev_time, curr_time
 
-def hand_draw(results, mp_drawing, mp_hands):
+def hand_draw(image, results, mp_drawing, mp_hands):
     for hand_landmarks in results.multi_hand_landmarks:
         mp_drawing.draw_landmarks(
             image,
@@ -107,7 +107,7 @@ def main():
     curr_time = 0
 
     # Camera Setup
-    capture = cv.VideoCaputer(0)
+    capture = cv.VideoCapture(0)
 
     # MediaPipe Setup
     mp_drawing = mp.solutions.drawing_utils
@@ -137,7 +137,7 @@ def main():
         # Main Logic
         if results.multi_hand_landmarks:
             # Draw points on hand
-            hand_draw(results, mp_drawing, mp_hands)
+            hand_draw(image, results, mp_drawing, mp_hands)
 
             # Move mouse to where hand is
             hand_detection(
@@ -158,7 +158,7 @@ def main():
         cv.imshow("Mouse Hands", image)
 
         # Press q to quit
-        if cv.waitkey(20) & 0xFF==ord('q'):
+        if cv.waitKey(20) & 0xFF==ord('q'):
             break
 
     hands.close()
