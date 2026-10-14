@@ -99,7 +99,7 @@ def main():
     # Set up utilites first
 
     # Pyautogui setup
-    pyautogui.PAUSE = 0 # Makes the mouse move cleaner
+    pyautogui.PAUSE = 0.01 # Makes the mouse move cleaner
     screen_width, screen_height = pyautogui.size()
     prev_x, prev_y = pyautogui.position()
 
